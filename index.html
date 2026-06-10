@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Поиск преподавателей</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin-bottom: 30px;
+            text-align: center;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        /* Панель управления (Поиск и Фильтры) */
+        .controls-panel {
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            margin-bottom: 32px;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 16px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+        }
+
+        /* Сетка карточек */
+        .teachers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 48px;
+        }
+
+        /* Карточка преподавателя + Фишки анимации */
+        .teacher-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        /* Эффект наведения на карточку */
+        .teacher-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary);
+        }
+
+        /* Декоративная цветная полоса, появляющаяся при наведении */
+        .teacher-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--primary);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .teacher-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .teacher-name {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+
+        .teacher-subject {
+            font-size: 14px;
+            color: var(--primary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+        }
+
+        .teacher-info {
+            font-size: 15px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .info-label {
+            color: var(--text-muted);
+        }
+
+        .info-value {
+            font-weight: 500;
+        }
+
+        /* Форма добавления */
+        .form-section {
+            background: var(--card-bg);
+            padding: 32px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .form-section h2 {
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .form-group.full-width {
+            grid-column: span 2;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: var(--primary-hover);
+        }
+
+        /* Сообщение, если ничего не найдено */
+        .no-results {
+            text-align: center;
+            grid-column: 1 / -1;
+            padding: 40px;
+            color: var(--text-muted);
+            font-size: 16px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <h1>Поиск и подбор преподавателей</h1>
+
+    <div class="controls-panel">
+        <input type="text" id="searchInput" placeholder="Поиск по имени или предмету...">
+        
+        <select id="langFilter">
+            <option value="">Все языки обучения</option>
+            <option value="Казахский">Казахский</option>
+            <option value="Русский">Русский</option>
+            <option value="Английский">Английский</option>
+        </select>
+
+        <select id="experienceFilter">
+            <option value="">Любой стаж</option>
+            <option value="0-5">До 5 лет</option>
+            <option value="5-10">От 5 до 10 лет</option>
+            <option value="10+">Более 10 лет</option>
+        </select>
+    </div>
+
+    <div class="teachers-grid" id="teachersGrid">
+        </div>
+    
+    <div class="no-results" id="noResults">Преподаватели с такими параметрами не найдены.</div>
+
+    <div class="form-section">
+        <h2>Добавить нового преподавателя</h2>
+        <form id="addTeacherForm">
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label for="newName">ФИО преподавателя</label>
+                    <input type="text" id="newName" required placeholder="Например, Ахметов Данияр">
+                </div>
+                <div class="form-group">
+                    <label for="newSubject">Предмет</label>
+                    <input type="text" id="newSubject" required placeholder="Например, Высшая математика">
+                </div>
+                <div class="form-group">
+                    <label for="newExp">Стаж работы (лет)</label>
+                    <input type="number" id="newExp" min="0" required placeholder="Например, 7">
+                </div>
+                <div class="form-group full-width">
+                    <label for="newLang">Язык обучения</label>
+                    <select id="newLang" required>
+                        <option value="Казахский">Казахский</option>
+                        <option value="Русский">Русский</option>
+                        <option value="Английский">Английский</option>
+                    </select>
+                </div>
+            </div>
+            <button type="submit">Добавить в базу данных</button>
+        </form>
+    </div>
+
+</div>
+
+<script>
+    // Стартовая база данных преподавателей
+    let teachers = [
+        { id: 1, name: "Иванова Елена Петровна", subject: "Программирование на Python", language: "Русский", experience: 4 },
+        { id: 2, name: "Оспанов Бахтияр Серикович", subject: "Базы данных и SQL", language: "Казахский", experience: 12 },
+        { id: 3, name: "John Smith", subject: "Web-разработка (Frontend)", language: "Английский", experience: 8 },
+        { id: 4, name: "Алиева Алия Маратовна", subject: "Алгоритмы и структуры данных", language: "Казахский", experience: 3 },
+        { id: 5, name: "Петров Сергей Владимирович", subject: "Компьютерные сети", language: "Русский", experience: 15 }
+    ];
+
+    const teachersGrid = document.getElementById('teachersGrid');
+    const noResults = document.getElementById('noResults');
+
+    // Функция отображения карточек
+    function renderTeachers(data) {
+        teachersGrid.innerHTML = '';
+        
+        if (data.length === 0) {
+            noResults.style.display = 'block';
+            return;
+        }
+        noResults.style.display = 'none';
+
+        data.forEach(teacher => {
+            const card = document.createElement('div');
+            card.className = 'teacher-card';
+            card.innerHTML = `
+                <div class="teacher-name">${teacher.name}</div>
+                <div class="teacher-subject">${teacher.subject}</div>
+                <div class="teacher-info">
+                    <span class="info-label">Язык обучения:</span>
+                    <span class="info-value">${teacher.language}</span>
+                </div>
+                <div class="teacher-info">
+                    <span class="info-label">Стаж работы:</span>
+                    <span class="info-value">${teacher.experience} ${getYearWord(teacher.experience)}</span>
+                </div>
+            `;
+            teachersGrid.appendChild(card);
+        });
+    }
+
+    // Вспомогательная функция для правильного склонения слова "лет/года"
+    function getYearWord(years) {
+        if (years % 10 === 1 && years % 100 !== 11) return 'год';
+        if ([2, 3, 4].includes(years % 10) && ![12, 13, 14].includes(years % 100)) return 'года';
+        return 'лет';
+    }
+
+    // Главная функция фильтрации и поиска
+    function filterTeachers() {
+        const searchText = document.getElementById('searchInput').value.toLowerCase();
+        const selectedLang = document.getElementById('langFilter').value;
+        const selectedExp = document.getElementById('experienceFilter').value;
+
+        const filtered = teachers.filter(teacher => {
+            const matchesSearch = teacher.name.toLowerCase().includes(searchText) || 
+                                  teacher.subject.toLowerCase().includes(searchText);
+            
+            const matchesLang = selectedLang === "" || teacher.language === selectedLang;
+            
+            let matchesExp = true;
+            if (selectedExp === "0-5") matchesExp = teacher.experience <= 5;
+            else if (selectedExp === "5-10") matchesExp = teacher.experience > 5 && teacher.experience <= 10;
+            else if (selectedExp === "10+") matchesExp = teacher.experience > 10;
+
+            return matchesSearch && matchesLang && matchesExp;
+        });
+
+        renderTeachers(filtered);
+    }
+
+    // Слушатели событий для фильтров (срабатывают мгновенно при вводе/выборе)
+    document.getElementById('searchInput').addEventListener('input', filterTeachers);
+    document.getElementById('langFilter').addEventListener('change', filterTeachers);
+    document.getElementById('experienceFilter').addEventListener('change', filterTeachers);
+
+    // Логика работы формы добавления
+    document.getElementById('addTeacherForm').addEventListener('submit', function(e) {
+        e.preventDefault(); // Предотвращаем перезагрузку страницы
+
+        // Создаем объект нового преподавателя
+        const newTeacher = {
+            id: Date.now(), // уникальный id
+            name: document.getElementById('newName').value,
+            subject: document.getElementById('newSubject').value,
+            language: document.getElementById('newLang').value,
+            experience: parseInt(document.getElementById('newExp').value)
+        };
+
+        // Добавляем в наш массив и обновляем интерфейс
+        teachers.push(newTeacher);
+        filterTeachers();
+
+        // Сбрасываем поля формы
+        this.reset();
+    });
+
+    // Первый рендер при загрузке страницы
+    renderTeachers(teachers);
+</script>
+
+</body>
+</html>
